@@ -12,6 +12,7 @@ use gui::AudioStreamerApp;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // clap argument parsing remains the same...
     let matches = Command::new("Audio Streamer")
         .version("0.1.0")
         .about("Stream system audio to phone via UDP")
@@ -32,20 +33,27 @@ async fn main() -> Result<()> {
 
     let config = load_or_create_config(&config_path).await?;
 
+    // --- KEY CHANGE: Set up a transparent, borderless window ---
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([600.0, 500.0])
-            .with_min_inner_size([500.0, 400.0]),
+            .with_inner_size([600.0, 550.0]) // Increased height for better padding
+            .with_min_inner_size([500.0, 450.0])
+            .with_decorations(false) // No OS title bar, borders, etc.
+            .with_transparent(true), // Enable transparency
         ..Default::default()
     };
+    // --- END OF KEY CHANGE ---
 
     let rt = tokio::runtime::Handle::current();
-    let app = AudioStreamerApp::new(config, config_path, rt);
 
     eframe::run_native(
         "Audio Streamer",
         options,
-        Box::new(move |_cc| Box::new(app)),
+        // Pass the creation context to the app so we can apply styles
+        Box::new(move |cc| {
+            let app = AudioStreamerApp::new(config, config_path, rt, cc);
+            Box::new(app)
+        }),
     ).map_err(|e| anyhow::anyhow!("Failed to run GUI: {}", e))?;
 
     Ok(())
